@@ -6,4 +6,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Extensions for std"
-keywords = ["iter", "time"]
+keywords = ["iter", "str", "time"]
+
+[dev-dependencies]
+test-case = "3"
