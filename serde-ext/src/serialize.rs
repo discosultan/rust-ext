@@ -6,7 +6,7 @@ use serde::{
 /// Custom serialization function to support serializing const generic arrays.
 ///
 /// <https://github.com/serde-rs/serde/issues/1937#issuecomment-812461429>
-pub fn serialize_const_generic_array<S: Serializer, T: Serialize, const N: usize>(
+pub fn const_generic_array<S: Serializer, T: Serialize, const N: usize>(
     data: &[T; N],
     ser: S,
 ) -> Result<S::Ok, S::Error> {
@@ -18,7 +18,7 @@ pub fn serialize_const_generic_array<S: Serializer, T: Serialize, const N: usize
 }
 
 /// Custom serialization function that uses [`ToString`].
-pub fn serialize_to_string<S>(value: &impl ToString, serializer: S) -> Result<S::Ok, S::Error>
+pub fn to_string<S>(value: &impl ToString, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -26,10 +26,7 @@ where
 }
 
 /// Custom serialization function that uses [`ToString`].
-pub fn serialize_to_string_opt<S>(
-    value: &Option<impl ToString>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub fn to_string_opt<S>(value: &Option<impl ToString>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -41,7 +38,7 @@ where
 }
 
 /// Custom serialization function that uses [`ToString`].
-pub fn serialize_slice_elements_to_string<S>(
+pub fn slice_elements_to_string<S>(
     values: &[impl ToString],
     serializer: S,
 ) -> Result<S::Ok, S::Error>

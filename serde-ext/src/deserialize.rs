@@ -10,7 +10,7 @@ use serde::{
 };
 
 /// Custom deserialization function that uses [`FromStr`].
-pub fn deserialize_from_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+pub fn from_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: FromStr,
@@ -42,7 +42,7 @@ where
 
 /// Custom deserialization function that uses [`FromStr`]. If deserialization
 /// fails, returns the default value.
-pub fn deserialize_from_str_or_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+pub fn from_str_or_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: FromStr + Default,
@@ -74,7 +74,7 @@ where
 
 /// For example, deserializes the string "2023-09-22T10:33:05.709993Z" into a
 /// duration since epoch.
-pub fn deserialize_duration_iso_8601<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn duration_iso_8601<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -99,7 +99,7 @@ where
     deserializer.deserialize_str(StringVisitor)
 }
 
-pub fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -107,7 +107,7 @@ where
     Ok(Duration::from_secs(secs))
 }
 
-pub fn deserialize_duration_from_millis<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn duration_from_millis<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -115,7 +115,7 @@ where
     Ok(Duration::from_millis(millis))
 }
 
-pub fn deserialize_duration_from_nanos<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn duration_from_nanos<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -124,7 +124,7 @@ where
 }
 
 /// Custom deserialization function that uses [`FromStr`] for optional fields.
-pub fn deserialize_from_str_opt<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+pub fn from_str_opt<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'de>,
     T: FromStr,
@@ -162,7 +162,7 @@ where
 }
 
 /// For example, deserializes the string "1hour 12min 5s" into a duration.
-pub fn deserialize_duration_humantime<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn duration_humantime<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn test_deserialize_from_str() {
         #[derive(Deserialize)]
-        struct Number(#[serde(deserialize_with = "deserialize_from_str")] u32);
+        struct Number(#[serde(deserialize_with = "from_str")] u32);
 
         let output: Number = serde_json::from_str("\"1\"").unwrap();
         assert_eq!(output.0, 1);
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn test_deserialize_from_str_streaming() {
         #[derive(Deserialize)]
-        struct Number(#[serde(deserialize_with = "deserialize_from_str")] u32);
+        struct Number(#[serde(deserialize_with = "from_str")] u32);
 
         let input = b"\"1\"";
         // Deserialize from a Reader (streaming). Streaming cannot hand out
@@ -220,7 +220,7 @@ mod tests {
     #[test_case("\"a\"" => 0)]
     fn test_deserialize_from_str_or_default(input: &str) -> u32 {
         #[derive(Deserialize)]
-        struct Number(#[serde(deserialize_with = "deserialize_from_str_or_default")] u32);
+        struct Number(#[serde(deserialize_with = "from_str_or_default")] u32);
 
         let output: Number = serde_json::from_str(input).unwrap();
         output.0
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn test_deserialize_from_str_or_default_streaming() {
         #[derive(Deserialize)]
-        struct Number(#[serde(deserialize_with = "deserialize_from_str_or_default")] u32);
+        struct Number(#[serde(deserialize_with = "from_str_or_default")] u32);
 
         let input = b"\"1\"";
         // Deserialize from a Reader (streaming). Streaming cannot hand out
@@ -242,9 +242,7 @@ mod tests {
     #[test]
     fn test_deserialize_duration_iso_8601() {
         #[derive(Deserialize)]
-        struct Iso8601Duration(
-            #[serde(deserialize_with = "deserialize_duration_iso_8601")] Duration,
-        );
+        struct Iso8601Duration(#[serde(deserialize_with = "duration_iso_8601")] Duration);
 
         let output: Iso8601Duration =
             serde_json::from_str("\"2023-10-06T17:35:55.440295Z\"").unwrap();
@@ -254,9 +252,7 @@ mod tests {
     #[test]
     fn test_deserialize_duration_from_millis() {
         #[derive(Deserialize)]
-        struct MillisDuration(
-            #[serde(deserialize_with = "deserialize_duration_from_millis")] Duration,
-        );
+        struct MillisDuration(#[serde(deserialize_with = "duration_from_millis")] Duration);
 
         // 2020-06-30 03:24:41.683
         let output: MillisDuration = serde_json::from_str("1593487481683").unwrap();
@@ -266,9 +262,7 @@ mod tests {
     #[test]
     fn test_deserialize_duration_from_nanos() {
         #[derive(Deserialize)]
-        struct NanosDuration(
-            #[serde(deserialize_with = "deserialize_duration_from_nanos")] Duration,
-        );
+        struct NanosDuration(#[serde(deserialize_with = "duration_from_nanos")] Duration);
 
         // 2020-06-30 03:24:41.683297666
         let output: NanosDuration = serde_json::from_str("1593487481683297666").unwrap();
@@ -278,9 +272,7 @@ mod tests {
     #[test]
     fn test_deserialize_duration_humantime() {
         #[derive(Deserialize)]
-        struct HumantimeDuration(
-            #[serde(deserialize_with = "deserialize_duration_humantime")] Duration,
-        );
+        struct HumantimeDuration(#[serde(deserialize_with = "duration_humantime")] Duration);
 
         let output: HumantimeDuration = serde_json::from_str("\"1hour 12min 5s\"").unwrap();
         assert_eq!(output.0, Duration::new(4325, 0));
