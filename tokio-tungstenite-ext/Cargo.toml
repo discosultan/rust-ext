@@ -1,0 +1,26 @@
+[package]
+name = "tokio-tungstenite-ext"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Extensions for tokio_tungstenite"
+keywords = ["websocket", "io", "web"]
+
+[dependencies]
+futures-core = "0.3"
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["time"] }
+tokio-tungstenite = "0.27"
+tracing = "0.1"
+
+[dev-dependencies]
+anyhow = "1"
+rustls = { version = "0.23" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio-tungstenite = { version = "0.27", features = ["rustls-tls-webpki-roots"] }

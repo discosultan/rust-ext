@@ -1,0 +1,17 @@
+[package]
+name = "serde-ext"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Extensions for serde"
+keywords = ["serde", "serialization"]
+
+[dependencies]
+humantime = "2"
+serde = "1"
+
+[dev-dependencies]
+serde_json = "1"
+test-case = "3"
