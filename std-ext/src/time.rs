@@ -14,6 +14,13 @@ impl Time for Real {
     }
 }
 
+#[must_use]
+pub fn timestamp() -> Duration {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or(Duration::ZERO)
+}
+
 #[cfg(test)]
 pub mod tests {
     use std::{cell::RefCell, rc::Rc};

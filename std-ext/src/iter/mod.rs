@@ -1,7 +1,6 @@
 mod exponential;
 mod reset;
 mod saturating;
-mod time;
 
 use std::{
     iter::{Chain, Once},

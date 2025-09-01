@@ -1,9 +1,9 @@
 [package]
-name = "iter-ext"
+name = "std-ext"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Extensions for std iter"
-keywords = ["iterator"]
+description = "Extensions for std"
+keywords = ["iter", "time"]
