@@ -1,4 +1,4 @@
-/// Returns an exponential iterator. Saturates on overflow.
+/// Returns an exponential iterator.
 ///
 /// I.e yields 1, 2, 4, 8, 16 ...
 #[must_use]
