@@ -3,7 +3,7 @@ use std::{error::Error, time::Duration};
 use futures_util::{Sink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
-use tokio_tungstenite_ext::{MessageSinkExt, MessageStreamExt, WebSocketStreamExt};
+use tokio_tungstenite_ext::{MessageExt, MessageStreamExt, WebSocketStreamExt};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -54,7 +54,7 @@ async fn periodically_send_json(
     loop {
         interval.tick().await;
         count += 1;
-        ws_write.send(Counter { count }.json()?).await?;
+        ws_write.send(Message::json(&Counter { count })?).await?;
     }
 }
 

@@ -132,18 +132,19 @@ impl MessageStreamExt for Option<tungstenite::Result<Utf8Bytes>> {
     }
 }
 
-pub trait MessageSinkExt {
+pub trait MessageExt {
     /// Serialize the given data structure as a JSON [`tungstenite::Message`].
     ///
     /// # Errors
     ///
     /// This conversion can fail if the underlying serialization fails. See
     /// [`serde_json::to_string`] for more details.
-    fn json(&self) -> Result<Message, serde_json::Error>;
+    fn json<T: Serialize>(value: &T) -> Result<Message, serde_json::Error>;
 }
 
-impl<T: Serialize> MessageSinkExt for T {
-    fn json(&self) -> Result<Message, serde_json::Error> {
-        Ok(Message::Text(serde_json::to_string(self)?.into()))
+impl MessageExt for Message {
+    /// Create a new text WebSocket message from a json serializable.
+    fn json<T: Serialize>(value: &T) -> Result<Self, serde_json::Error> {
+        Ok(Message::Text(serde_json::to_string(value)?.into()))
     }
 }
