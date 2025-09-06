@@ -6,8 +6,6 @@ mod tracing;
 use std::time::Duration;
 
 use futures_core::Stream;
-use serde::{Serialize, de::DeserializeOwned};
-use tokio_tungstenite::tungstenite::{self, Message, Utf8Bytes};
 
 pub use self::{heartbeat::*, next::*, refreshing::*, tracing::*};
 
@@ -72,6 +70,11 @@ pub trait WebSocketStreamExt {
     fn next_text(&mut self) -> next::Text<'_, Self>
     where
         Self: Unpin;
+
+    #[cfg(feature = "serde")]
+    fn next_json<T>(&mut self) -> next::Json<'_, Self, T>
+    where
+        Self: Unpin;
 }
 
 impl<S> WebSocketStreamExt for S
@@ -91,60 +94,56 @@ where
     {
         next::Text::new(self)
     }
-}
 
-#[derive(Debug, thiserror::Error)]
-pub enum JsonError {
-    #[error("Websocket stream closed.")]
-    StreamClosed,
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
-    #[error("{0}")]
-    Tunsgtenite(#[source] Box<tungstenite::Error>),
-}
-
-impl From<tungstenite::Error> for JsonError {
-    fn from(err: tungstenite::Error) -> Self {
-        JsonError::Tunsgtenite(Box::new(err))
+    #[cfg(feature = "serde")]
+    fn next_json<T>(&mut self) -> next::Json<'_, Self, T>
+    where
+        Self: Unpin,
+    {
+        next::Json::new(self)
     }
 }
 
-pub trait MessageStreamExt {
-    /// Deserialize an instance of type `T` from a JSON
-    /// [`tungstenite::Message`].
-    ///
-    /// # Errors
-    ///
-    /// This conversion can fail if either the websocket stream has closed,
-    /// the result is [`tungstenite::Error`] or the underlying deserialization
-    /// fails. See [`serde_json::from_str`] for more details regarding
-    /// deserialization.
-    fn json<T: DeserializeOwned>(self) -> Result<T, JsonError>;
-}
+#[cfg(feature = "serde")]
+pub use serde::*;
 
-impl MessageStreamExt for Option<tungstenite::Result<Utf8Bytes>> {
-    fn json<T: DeserializeOwned>(self) -> Result<T, JsonError> {
-        let Some(msg) = self else {
-            return Err(JsonError::StreamClosed);
-        };
-        let value: T = serde_json::from_str(&msg?)?;
-        Ok(value)
+#[cfg(feature = "serde")]
+mod serde {
+    use ::serde::Serialize;
+    use futures_util::{Sink, SinkExt, sink::Send};
+    use tokio_tungstenite::tungstenite::Message;
+
+    pub trait WebSocketSinkExt: Sink<Message> {
+        /// Serializes `item` as json and returns a future that completes after the
+        /// given item has been fully processed into the sink, including flushing.
+        fn send_json<T: Serialize>(
+            &mut self,
+            item: T,
+        ) -> Result<Send<'_, Self, Message>, serde_json::Error>
+        where
+            Self: Unpin,
+        {
+            let msg = Message::json(&item)?;
+            Ok(self.send(msg))
+        }
     }
-}
 
-pub trait MessageExt {
-    /// Serialize the given data structure as a JSON [`tungstenite::Message`].
-    ///
-    /// # Errors
-    ///
-    /// This conversion can fail if the underlying serialization fails. See
-    /// [`serde_json::to_string`] for more details.
-    fn json<T: Serialize>(value: &T) -> Result<Message, serde_json::Error>;
-}
+    impl<S> WebSocketSinkExt for S where S: Sink<Message> + ?Sized {}
 
-impl MessageExt for Message {
-    /// Create a new text WebSocket message from a json serializable.
-    fn json<T: Serialize>(value: &T) -> Result<Self, serde_json::Error> {
-        Ok(Message::Text(serde_json::to_string(value)?.into()))
+    pub trait MessageExt {
+        /// Serialize the given data structure as a JSON [`tungstenite::Message`].
+        ///
+        /// # Errors
+        ///
+        /// This conversion can fail if the underlying serialization fails. See
+        /// [`serde_json::to_string`] for more details.
+        fn json<T: Serialize>(value: &T) -> Result<Message, serde_json::Error>;
+    }
+
+    impl MessageExt for Message {
+        /// Create a new text WebSocket message from a json serializable.
+        fn json<T: Serialize>(value: &T) -> Result<Self, serde_json::Error> {
+            Ok(Message::Text(serde_json::to_string(value)?.into()))
+        }
     }
 }

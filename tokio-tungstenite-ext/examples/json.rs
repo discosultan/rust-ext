@@ -1,9 +1,9 @@
 use std::{error::Error, time::Duration};
 
-use futures_util::{Sink, SinkExt, StreamExt};
+use futures_util::{Sink, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
-use tokio_tungstenite_ext::{MessageExt, MessageStreamExt, WebSocketStreamExt};
+use tokio_tungstenite_ext::{WebSocketSinkExt, WebSocketStreamExt};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
@@ -40,10 +40,11 @@ async fn main() -> anyhow::Result<()> {
     info!("Received text: {text}");
 
     // Stream json messages.
-    loop {
-        let counter: Counter = ws_read.next_text().await.json()?;
-        info!("Received count: {}", counter.count);
+    while let Some(counter) = ws_read.next_json::<Counter>().await {
+        info!("Received count: {}", counter??.count);
     }
+
+    Ok(())
 }
 
 async fn periodically_send_json(
@@ -54,7 +55,7 @@ async fn periodically_send_json(
     loop {
         interval.tick().await;
         count += 1;
-        ws_write.send(Message::json(&Counter { count })?).await?;
+        ws_write.send_json(&Counter { count })?.await?;
     }
 }
 
