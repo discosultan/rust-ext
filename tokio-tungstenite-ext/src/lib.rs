@@ -6,6 +6,7 @@ mod tracing;
 use std::time::Duration;
 
 use futures_core::Stream;
+use tokio_tungstenite::tungstenite;
 
 pub use self::{heartbeat::*, next::*, refreshing::*, tracing::*};
 
@@ -101,6 +102,40 @@ where
         Self: Unpin,
     {
         next::Json::new(self)
+    }
+}
+
+#[expect(
+    clippy::result_large_err,
+    reason = "We want to wrap `tunsgtenite::Error` which is large."
+)]
+pub trait ResultExt<T> {
+    /// `tokio-tungstenite` stream yields `None` if the internal websocket error
+    /// matches `tungstenite::Error::AlreadyClosed | tungstenite::Error::ConnectionClosed`.
+    /// It represents a graceful exist. This fn removes the optionality by
+    /// undoing the conversion back to `tungstenite::Error::AlreadyClosed`.
+    fn ok_or_already_closed(self) -> tungstenite::Result<T>;
+
+    /// `tokio-tungstenite` stream yields `None` if the internal websocket error
+    /// matches `tungstenite::Error::AlreadyClosed | tungstenite::Error::ConnectionClosed`.
+    /// It represents a graceful exist. This fn removes the optionality by
+    /// undoing the conversion back to `tungstenite::Error::ConnectionClosed`.
+    fn ok_or_connection_closed(self) -> tungstenite::Result<T>;
+}
+
+impl<T> ResultExt<T> for Option<tungstenite::Result<T>> {
+    fn ok_or_already_closed(self) -> tungstenite::Result<T> {
+        match self {
+            Some(res) => res,
+            None => Err(tungstenite::Error::AlreadyClosed),
+        }
+    }
+
+    fn ok_or_connection_closed(self) -> tungstenite::Result<T> {
+        match self {
+            Some(res) => res,
+            None => Err(tungstenite::Error::ConnectionClosed),
+        }
     }
 }
 
