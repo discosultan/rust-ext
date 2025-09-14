@@ -4,8 +4,7 @@ use std::{
     time::Duration,
 };
 
-use futures_core::{Future, Stream, future::BoxFuture};
-use futures_util::{FutureExt, Sink, SinkExt, StreamExt};
+use futures_util::{FutureExt, Sink, SinkExt, Stream, StreamExt, future::BoxFuture};
 use tokio::time::{self, Interval, Sleep};
 use tokio_tungstenite::{
     WebSocketStream, connect_async_with_config,

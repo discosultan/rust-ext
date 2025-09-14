@@ -4,8 +4,7 @@ use std::{
     time::Duration,
 };
 
-use futures_core::Stream;
-use futures_util::{Sink, SinkExt, StreamExt};
+use futures_util::{Sink, SinkExt, Stream, StreamExt};
 use tokio::time::{self, Interval};
 use tokio_tungstenite::tungstenite::{self, Bytes, Message};
 

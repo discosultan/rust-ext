@@ -3,8 +3,7 @@ use std::{
     task::{Context, Poll, ready},
 };
 
-use futures_core::{FusedFuture, FusedStream, Future, Stream};
-use futures_util::StreamExt;
+use futures_util::{Future, Stream, StreamExt, future::FusedFuture, stream::FusedStream};
 use tokio_tungstenite::tungstenite::{self, Bytes, Message, Utf8Bytes};
 
 /// Future for the [`next_bin`](super::WebSocketStreamExt::next_bin) method.

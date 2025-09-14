@@ -3,8 +3,7 @@ use std::{
     task::{Context, Poll, ready},
 };
 
-use futures_core::Stream;
-use futures_util::{Sink, SinkExt, StreamExt};
+use futures_util::{Sink, SinkExt, Stream, StreamExt};
 use tokio_tungstenite::tungstenite::{self, Message};
 use tracing::debug;
 

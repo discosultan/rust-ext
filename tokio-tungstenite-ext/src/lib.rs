@@ -5,7 +5,7 @@ mod tracing;
 
 use std::time::Duration;
 
-use futures_core::Stream;
+use futures_util::Stream;
 use tokio_tungstenite::tungstenite;
 
 pub use self::{heartbeat::*, next::*, refreshing::*, tracing::*};
@@ -154,7 +154,7 @@ mod serde {
         fn send_json<T: Serialize>(
             &mut self,
             item: T,
-        ) -> Result<Send<'_, Self, Message>, serde_json::Error>
+        ) -> serde_json::Result<Send<'_, Self, Message>>
         where
             Self: Unpin,
         {
@@ -172,12 +172,12 @@ mod serde {
         ///
         /// This conversion can fail if the underlying serialization fails. See
         /// [`serde_json::to_string`] for more details.
-        fn json<T: Serialize>(value: &T) -> Result<Message, serde_json::Error>;
+        fn json<T: Serialize>(value: &T) -> serde_json::Result<Message>;
     }
 
     impl MessageExt for Message {
         /// Create a new text WebSocket message from a json serializable.
-        fn json<T: Serialize>(value: &T) -> Result<Self, serde_json::Error> {
+        fn json<T: Serialize>(value: &T) -> serde_json::Result<Self> {
             Ok(Message::Text(serde_json::to_string(value)?.into()))
         }
     }
