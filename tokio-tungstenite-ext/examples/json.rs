@@ -55,7 +55,7 @@ async fn periodically_send_json(
     loop {
         interval.tick().await;
         count += 1;
-        ws_write.send_json(&Counter { count })?.await?;
+        ws_write.send_json(&Counter { count }).await??;
     }
 }
 

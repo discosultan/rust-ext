@@ -1,6 +1,8 @@
 mod heartbeat;
 mod next;
 mod refreshing;
+#[cfg(feature = "serde")]
+mod send;
 mod tracing;
 
 use std::time::Duration;
@@ -8,6 +10,8 @@ use std::time::Duration;
 use futures_util::Stream;
 use tokio_tungstenite::tungstenite;
 
+#[cfg(feature = "serde")]
+pub use self::send::*;
 pub use self::{heartbeat::*, next::*, refreshing::*, tracing::*};
 
 pub trait WebSocketStreamExt {
@@ -145,21 +149,19 @@ pub use serde::*;
 #[cfg(feature = "serde")]
 mod serde {
     use ::serde::Serialize;
-    use futures_util::{Sink, SinkExt, sink::Send};
+    use futures_util::Sink;
     use tokio_tungstenite::tungstenite::Message;
+
+    use super::*;
 
     pub trait WebSocketSinkExt: Sink<Message> {
         /// Serializes `item` as json and returns a future that completes after the
         /// given item has been fully processed into the sink, including flushing.
-        fn send_json<T: Serialize>(
-            &mut self,
-            item: T,
-        ) -> serde_json::Result<Send<'_, Self, Message>>
+        fn send_json<T: Serialize>(&mut self, item: T) -> SendJson<'_, Self, T>
         where
             Self: Unpin,
         {
-            let msg = Message::json(&item)?;
-            Ok(self.send(msg))
+            SendJson::new(self, item)
         }
     }
 
