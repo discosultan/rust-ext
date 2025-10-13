@@ -1,0 +1,26 @@
+[package]
+name = "tokio-ext"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Extensions for tokio"
+keywords = ["io", "async", "non-blocking", "futures"]
+
+[dependencies]
+futures-util = "0.3"
+thiserror = "2"
+# TODO: Put rt-multi-thread behind feature flag?
+tokio = "1"
+tracing = "0.1"
+
+[features]
+rt = ["tokio/rt"]
+rt-multi-thread = ["rt", "tokio/rt-multi-thread"]
+sync = ["tokio/sync"]
+
+[lints.rust]
+# Enable the cfg check for conditionally compiling unstable Tokio features such
+# as named tasks.
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(tokio_unstable)'] }

@@ -1,5 +1,5 @@
 [workspace]
-members = ["serde-ext", "std-ext", "tokio-tungstenite-ext"]
+members = ["serde-ext", "std-ext", "tokio-ext", "tokio-tungstenite-ext"]
 resolver = "3"
 
 [workspace.package]
