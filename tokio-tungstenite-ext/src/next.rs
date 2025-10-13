@@ -33,18 +33,20 @@ impl<St: ?Sized + Stream<Item = tungstenite::Result<Message>> + Unpin> Future fo
     type Output = Option<tungstenite::Result<Bytes>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let item = ready!(self.stream.poll_next_unpin(cx));
+        loop {
+            let item = ready!(self.stream.poll_next_unpin(cx));
 
-        let Some(item) = item else {
-            return Poll::Ready(None);
-        };
+            let Some(item) = item else {
+                return Poll::Ready(None);
+            };
 
-        match item {
-            Ok(item) => match item {
-                Message::Binary(item) => Poll::Ready(Some(Ok(item))),
-                _ => Self::poll(self, cx),
-            },
-            Err(err) => Poll::Ready(Some(Err(err))),
+            match item {
+                Ok(item) => match item {
+                    Message::Binary(item) => return Poll::Ready(Some(Ok(item))),
+                    _ => continue,
+                },
+                Err(err) => return Poll::Ready(Some(Err(err))),
+            }
         }
     }
 }
@@ -76,18 +78,20 @@ impl<St: ?Sized + Stream<Item = tungstenite::Result<Message>> + Unpin> Future fo
     type Output = Option<tungstenite::Result<Utf8Bytes>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let item = ready!(self.stream.poll_next_unpin(cx));
+        loop {
+            let item = ready!(self.stream.poll_next_unpin(cx));
 
-        let Some(item) = item else {
-            return Poll::Ready(None);
-        };
+            let Some(item) = item else {
+                return Poll::Ready(None);
+            };
 
-        match item {
-            Ok(item) => match item {
-                Message::Text(item) => Poll::Ready(Some(Ok(item))),
-                _ => Self::poll(self, cx),
-            },
-            Err(err) => Poll::Ready(Some(Err(err))),
+            match item {
+                Ok(item) => match item {
+                    Message::Text(item) => return Poll::Ready(Some(Ok(item))),
+                    _ => continue,
+                },
+                Err(err) => return Poll::Ready(Some(Err(err))),
+            }
         }
     }
 }
@@ -144,20 +148,22 @@ mod serde {
         type Output = Option<tungstenite::Result<serde_json::Result<T>>>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-            let item = ready!(self.stream.poll_next_unpin(cx));
+            loop {
+                let item = ready!(self.stream.poll_next_unpin(cx));
 
-            let Some(item) = item else {
-                return Poll::Ready(None);
-            };
+                let Some(item) = item else {
+                    return Poll::Ready(None);
+                };
 
-            match item {
-                Ok(item) => match item {
-                    Message::Text(item) => {
-                        Poll::Ready(Some(Ok(serde_json::from_slice(item.as_bytes()))))
-                    }
-                    _ => Self::poll(self, cx),
-                },
-                Err(err) => Poll::Ready(Some(Err(err))),
+                match item {
+                    Ok(item) => match item {
+                        Message::Text(item) => {
+                            return Poll::Ready(Some(Ok(serde_json::from_slice(item.as_bytes()))));
+                        }
+                        _ => continue,
+                    },
+                    Err(err) => return Poll::Ready(Some(Err(err))),
+                }
             }
         }
     }

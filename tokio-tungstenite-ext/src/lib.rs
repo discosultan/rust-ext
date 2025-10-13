@@ -86,6 +86,7 @@ impl<S> WebSocketStreamExt for S
 where
     S: Stream,
 {
+    #[inline]
     fn next_bin(&mut self) -> next::Binary<'_, Self>
     where
         Self: Unpin,
@@ -93,6 +94,7 @@ where
         next::Binary::new(self)
     }
 
+    #[inline]
     fn next_text(&mut self) -> next::Text<'_, Self>
     where
         Self: Unpin,
@@ -101,6 +103,7 @@ where
     }
 
     #[cfg(feature = "serde")]
+    #[inline]
     fn next_json<T>(&mut self) -> next::Json<'_, Self, T>
     where
         Self: Unpin,
@@ -124,6 +127,7 @@ pub trait ResultExt<T> {
 }
 
 impl<T> ResultExt<T> for Option<tungstenite::Result<T>> {
+    #[inline]
     fn ok_or_already_closed(self) -> tungstenite::Result<T> {
         match self {
             Some(res) => res,
@@ -131,6 +135,7 @@ impl<T> ResultExt<T> for Option<tungstenite::Result<T>> {
         }
     }
 
+    #[inline]
     fn ok_or_connection_closed(self) -> tungstenite::Result<T> {
         match self {
             Some(res) => res,
