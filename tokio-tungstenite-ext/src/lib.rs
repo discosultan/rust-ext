@@ -109,10 +109,6 @@ where
     }
 }
 
-#[expect(
-    clippy::result_large_err,
-    reason = "We want to wrap `tunsgtenite::Error` which is large."
-)]
 pub trait ResultExt<T> {
     /// `tokio-tungstenite` stream yields `None` if the internal websocket error
     /// matches `tungstenite::Error::AlreadyClosed | tungstenite::Error::ConnectionClosed`.
