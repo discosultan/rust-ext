@@ -1,0 +1,15 @@
+[package]
+name = "rust-decimal-ext"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Extensions for rust_decimal"
+keywords = ["decimal", "financial", "fixed", "precision", "number"]
+
+[dependencies]
+# Version 1.36.0 fixes a compilation error with arrayvec.
+# https://github.com/paupino/rust-decimal/issues/669
+rust_decimal = "1.36"
+rust_decimal_macros = "1"

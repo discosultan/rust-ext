@@ -1,5 +1,13 @@
 [workspace]
-members = ["serde-ext", "std-ext", "tokio-ext", "tokio-tungstenite-ext"]
+members = [
+    "ratatui-ext",
+    "rust-decimal-ext",
+    "serde-ext",
+    "std-ext",
+    "tokio-ext",
+    "tokio-tungstenite-ext",
+    "tracing-subscriber-ext",
+]
 resolver = "3"
 
 [workspace.package]

@@ -1,0 +1,18 @@
+[package]
+name = "tracing-subscriber-ext"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Extensions for tracing-subscriber"
+keywords = ["logging", "tracing", "metrics", "subscriber"]
+
+[dependencies]
+console-subscriber = "0.4"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(tokio_unstable)'] }
