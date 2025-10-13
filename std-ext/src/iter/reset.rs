@@ -6,11 +6,11 @@ pub trait ResetExt: Iterator
 where
     Self: Clone + Sized,
 {
-    fn reset_after<T>(self, get_timestamp: T, reset_delay: Duration) -> Reset<Self, T>
+    fn reset_after<T>(self, get_timestamp: T, delay: Duration) -> Reset<Self, T>
     where
         T: Time,
     {
-        Reset::new(self, get_timestamp, reset_delay)
+        Reset::new(self, get_timestamp, delay)
     }
 }
 
@@ -21,9 +21,9 @@ pub struct Reset<I, T> {
     initial_inner: I,
 
     time: T,
-    reset_delay: Duration,
+    delay: Duration,
 
-    reset_at: Duration,
+    deadline: Duration,
 }
 
 impl<I, T> Reset<I, T>
@@ -31,14 +31,14 @@ where
     I: Clone,
     T: Time,
 {
-    pub fn new(inner: I, time: T, reset_delay: Duration) -> Self {
+    pub fn new(inner: I, time: T, delay: Duration) -> Self {
         Self {
             initial_inner: inner.clone(),
-            reset_at: time.timestamp() + reset_delay,
+            deadline: time.timestamp() + delay,
 
             inner,
             time,
-            reset_delay,
+            delay,
         }
     }
 }
@@ -52,11 +52,11 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let timestamp = self.time.timestamp();
-        if timestamp >= self.reset_at {
+        if timestamp >= self.deadline {
             self.inner = self.initial_inner.clone();
         }
 
-        self.reset_at = timestamp + self.reset_delay;
+        self.deadline = timestamp + self.delay;
         self.inner.next()
     }
 }
@@ -73,8 +73,8 @@ mod tests {
         let mock_time = Rc::new(RefCell::new(MockTime {
             value: Duration::ZERO,
         }));
-        let reset_delay = Duration::from_nanos(2);
-        let mut iter = (0..i32::MAX).reset_after(mock_time.clone(), reset_delay);
+        let delay = Duration::from_nanos(2);
+        let mut iter = (0..i32::MAX).reset_after(mock_time.clone(), delay);
 
         assert_eq!(iter.next(), Some(0));
         // Should reset because delay was 2. Sets reset_at to 4.

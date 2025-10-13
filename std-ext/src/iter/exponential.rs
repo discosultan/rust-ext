@@ -2,7 +2,7 @@
 ///
 /// I.e yields 1, 2, 4, 8, 16 ...
 #[must_use]
-pub fn exponential() -> Exponential {
+pub const fn exponential() -> Exponential {
     Exponential { current: 1 }
 }
 
@@ -16,11 +16,7 @@ impl Iterator for Exponential {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.current;
-        // Check for overflow.
-        if self.current > 9_223_372_036_854_775_808 {
-            return None;
-        }
-        self.current = self.current.saturating_mul(2);
+        self.current = self.current.checked_mul(2)?;
         Some(result)
     }
 }
@@ -41,13 +37,13 @@ mod tests {
     #[test]
     fn next_stops_on_overflow() {
         let mut iter = exponential();
-        // Iterate until the last value before overflow excluding.
-        for _ in 0..63 {
+        // Iterate until the last value before overflow.
+        for _ in 0..62 {
             iter.next();
         }
-        // 2^63
-        assert_eq!(iter.next(), Some(9_223_372_036_854_775_808));
-        // Next calls should result in overflow and hence return `None`.
+        // 2^62 (last value that can be returned without overflow).
+        assert_eq!(iter.next(), Some(4_611_686_018_427_387_904));
+        // 2^63 would be next, but 2^63 * 2 overflows, so return None.
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next(), None);
     }
