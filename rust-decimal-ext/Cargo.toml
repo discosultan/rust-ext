@@ -9,7 +9,16 @@ description = "Extensions for rust_decimal"
 keywords = ["decimal", "financial", "fixed", "precision", "number"]
 
 [dependencies]
+arrayvec = "0.7"
 # Version 1.36.0 fixes a compilation error with arrayvec.
 # https://github.com/paupino/rust-decimal/issues/669
 rust_decimal = "1.36"
 rust_decimal_macros = "1"
+
+[dev-dependencies]
+criterion = { version = "0.7", features = ["html_reports"] }
+test-case = "3"
+
+[[bench]]
+name = "decimal"
+harness = false
