@@ -16,7 +16,7 @@ rust_decimal = "1.36"
 rust_decimal_macros = "1"
 
 [dev-dependencies]
-criterion = { version = "0.7", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 test-case = "3"
 
 [[bench]]
