@@ -14,6 +14,7 @@ pub struct Exponential {
 impl Iterator for Exponential {
     type Item = u64;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.current;
         self.current = self.current.checked_mul(2)?;

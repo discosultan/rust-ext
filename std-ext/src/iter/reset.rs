@@ -50,6 +50,7 @@ where
 {
     type Item = I::Item;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let timestamp = self.time.timestamp();
         if timestamp >= self.deadline {

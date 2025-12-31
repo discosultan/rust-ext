@@ -34,6 +34,7 @@ where
 {
     type Item = I::Item;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let item = self.inner.next();
         if let Some(item) = item {
