@@ -13,7 +13,7 @@ use tokio_tungstenite::{
         protocol::WebSocketConfig,
     },
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 enum State<S> {
     Waiting,
@@ -78,16 +78,29 @@ where
                 }
                 State::Refreshing { connection } => {
                     // Poll the connection future.
-                    let (stream, _) = ready!(connection.poll_unpin(cx)?);
-                    let sleep = tokio::time::sleep(Duration::from_secs(1));
-                    this.state = State::Stitching {
-                        stream,
-                        sleep: Box::pin(sleep),
-                    };
-                    debug!(
-                        id = this.id,
-                        "New connection established but streaming still from old connection."
-                    );
+                    match ready!(connection.poll_unpin(cx)) {
+                        Ok((stream, _)) => {
+                            let sleep = tokio::time::sleep(Duration::from_secs(1));
+                            this.state = State::Stitching {
+                                stream,
+                                sleep: Box::pin(sleep),
+                            };
+                            debug!(
+                                id = this.id,
+                                "New connection established but streaming still from old connection."
+                            );
+                        }
+                        Err(err) => {
+                            // Drop the completed future and retry on the next
+                            // interval tick.
+                            this.state = State::Waiting;
+                            warn!(
+                                id = this.id,
+                                error = ?err,
+                                "Failed to refresh websocket connection; will retry on next tick."
+                            );
+                        }
+                    }
                 }
                 State::Stitching { stream, sleep } => {
                     // Wait for the sleep to complete.

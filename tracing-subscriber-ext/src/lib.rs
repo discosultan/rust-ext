@@ -45,7 +45,7 @@ pub fn init_rolling_file(directory: impl AsRef<Path>) -> Result<(), SetGlobalDef
 #[cfg(not(tokio_unstable))]
 pub fn init_rolling_file(directory: impl AsRef<Path>) -> Result<(), SetGlobalDefaultError> {
     // Setup json logging to a file.
-    tracing_subscriber::fmt()
+    let subscriber = tracing_subscriber::fmt()
         .json()
         .with_env_filter(
             EnvFilter::builder()
@@ -54,6 +54,7 @@ pub fn init_rolling_file(directory: impl AsRef<Path>) -> Result<(), SetGlobalDef
                 .from_env_lossy(),
         )
         .with_writer(tracing_appender::rolling::daily(directory, "log"))
-        .init();
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)?;
     Ok(())
 }

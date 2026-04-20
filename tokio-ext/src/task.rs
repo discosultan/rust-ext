@@ -26,14 +26,25 @@ impl<T> JoinSet<T> {
         self.handles.push(handle);
     }
 
-    pub async fn join_all(mut self) -> Vec<Result<T, tokio::task::JoinError>> {
-        let handles = std::mem::take(&mut self.handles);
-        futures_util::future::join_all(handles).await
+    /// Awaits completion of every inserted task.
+    ///
+    /// If this future is dropped before completion, any still-unfinished
+    /// tasks are aborted via the [`JoinSet`]'s `Drop` impl.
+    pub async fn join_all(self) -> Vec<Result<T, tokio::task::JoinError>> {
+        // Hold a reference so `Drop` still observes the handles if the
+        // caller cancels this future mid-await.
+        let mut this = self;
+        futures_util::future::join_all(&mut this.handles).await
     }
 
-    pub async fn try_join_all(mut self) -> Result<Vec<T>, tokio::task::JoinError> {
-        let handles = std::mem::take(&mut self.handles);
-        futures_util::future::try_join_all(handles).await
+    /// Awaits completion of every inserted task, short-circuiting on the
+    /// first error.
+    ///
+    /// If this future is dropped before completion, any still-unfinished
+    /// tasks are aborted via the [`JoinSet`]'s `Drop` impl.
+    pub async fn try_join_all(self) -> Result<Vec<T>, tokio::task::JoinError> {
+        let mut this = self;
+        futures_util::future::try_join_all(&mut this.handles).await
     }
 
     pub fn drain(&mut self) -> Vec<tokio::task::JoinHandle<T>> {

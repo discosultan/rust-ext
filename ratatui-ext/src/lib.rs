@@ -6,6 +6,7 @@ use std::{
 };
 
 use ratatui::{crossterm, layout::Constraint, prelude::CrosstermBackend};
+use unicode_width::UnicodeWidthStr;
 
 fn crossterm_enter() -> io::Result<()> {
     crossterm::terminal::enable_raw_mode()?;
@@ -83,7 +84,7 @@ pub fn calc_widths_row<'a, const N: usize>(
         };
         acc[i] = Constraint::Length(max(
             len,
-            u16::try_from(row[i].as_ref().len()).unwrap_or(u16::MAX),
+            u16::try_from(row[i].as_ref().width()).unwrap_or(u16::MAX),
         ));
     }
     acc

@@ -5,7 +5,7 @@ use std::{
 };
 
 use futures_util::{Sink, SinkExt, Stream, StreamExt};
-use tokio::time::{self, Interval};
+use tokio::time::{self, Interval, MissedTickBehavior};
 use tokio_tungstenite::tungstenite::{self, Bytes, Message};
 
 enum State {
@@ -26,6 +26,8 @@ impl<S, F> Heartbeat<S, F> {
         let mut interval = time::interval(interval);
         // We reset because otherwise the interval ticks immediately.
         interval.reset();
+        // Avoid firing a burst of pings to catch up after a stall.
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
         Self {
             inner,

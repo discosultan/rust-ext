@@ -1,95 +1,95 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use crate::time::Time;
+use crate::time::Clock;
 
 pub trait ResetExt: Iterator
 where
     Self: Clone + Sized,
 {
-    fn reset_after<T>(self, get_timestamp: T, delay: Duration) -> Reset<Self, T>
+    fn reset_after<C>(self, clock: C, delay: Duration) -> Reset<Self, C>
     where
-        T: Time,
+        C: Clock,
     {
-        Reset::new(self, get_timestamp, delay)
+        Reset::new(self, clock, delay)
     }
 }
 
 impl<I> ResetExt for I where I: Clone + Iterator {}
 
-pub struct Reset<I, T> {
+pub struct Reset<I, C> {
     inner: I,
     initial_inner: I,
 
-    time: T,
+    clock: C,
     delay: Duration,
 
-    deadline: Duration,
+    deadline: Instant,
 }
 
-impl<I, T> Reset<I, T>
+impl<I, C> Reset<I, C>
 where
     I: Clone,
-    T: Time,
+    C: Clock,
 {
-    pub fn new(inner: I, time: T, delay: Duration) -> Self {
+    pub fn new(inner: I, clock: C, delay: Duration) -> Self {
+        let now = clock.now();
         Self {
             initial_inner: inner.clone(),
-            deadline: time.timestamp() + delay,
+            deadline: now + delay,
 
             inner,
-            time,
+            clock,
             delay,
         }
     }
 }
 
-impl<I, T> Iterator for Reset<I, T>
+impl<I, C> Iterator for Reset<I, C>
 where
     I: Iterator + Clone,
-    T: Time,
+    C: Clock,
 {
     type Item = I::Item;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let timestamp = self.time.timestamp();
-        if timestamp >= self.deadline {
+        let now = self.clock.now();
+        if now >= self.deadline {
             self.inner = self.initial_inner.clone();
         }
 
-        self.deadline = timestamp + self.delay;
+        self.deadline = now + self.delay;
         self.inner.next()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, rc::Rc};
+    use std::{cell::Cell, rc::Rc};
 
     use super::*;
-    use crate::time::tests::MockTime;
+    use crate::time::tests::MockClock;
 
     #[test]
     fn next_resets() {
-        let mock_time = Rc::new(RefCell::new(MockTime {
-            value: Duration::ZERO,
-        }));
+        let start = Instant::now();
+        let cell = Rc::new(Cell::new(start));
         let delay = Duration::from_nanos(2);
-        let mut iter = (0..i32::MAX).reset_after(mock_time.clone(), delay);
+        let mut iter = Reset::new(0..i32::MAX, MockClock(cell.clone()), delay);
 
         assert_eq!(iter.next(), Some(0));
         // Should reset because delay was 2. Sets reset_at to 4.
-        mock_time.borrow_mut().value = Duration::from_nanos(2);
+        cell.set(start + Duration::from_nanos(2));
         assert_eq!(iter.next(), Some(0));
         assert_eq!(iter.next(), Some(1));
         // Should push reset_at to 5.
-        mock_time.borrow_mut().value = Duration::from_nanos(3);
+        cell.set(start + Duration::from_nanos(3));
         assert_eq!(iter.next(), Some(2));
         // Should not reset yet. Pushes reset_at to 6.
-        mock_time.borrow_mut().value = Duration::from_nanos(4);
+        cell.set(start + Duration::from_nanos(4));
         assert_eq!(iter.next(), Some(3));
         // Should reset.
-        mock_time.borrow_mut().value = Duration::from_nanos(6);
+        cell.set(start + Duration::from_nanos(6));
         assert_eq!(iter.next(), Some(0));
     }
 }

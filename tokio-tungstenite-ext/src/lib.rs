@@ -55,6 +55,10 @@ pub trait WebSocketStreamExt {
     /// Creates a future that resolves to the next [`Vec<u8>`] item in the
     /// stream.
     ///
+    /// Non-binary frames (Text, Ping, Pong, Close, Frame) are silently
+    /// discarded. If you need to observe those frames, consume the stream
+    /// directly with [`StreamExt::next`](futures_util::StreamExt::next).
+    ///
     /// Note that because `next_bin` doesn't take ownership over the stream,
     /// the [`Stream`] type must be [`Unpin`]. If you want to use `next_bin`
     /// with a [`!Unpin`](Unpin) stream, you'll first have to pin the stream.
@@ -67,6 +71,10 @@ pub trait WebSocketStreamExt {
     /// Creates a future that resolves to the next [`String`] item in the
     /// stream.
     ///
+    /// Non-text frames (Binary, Ping, Pong, Close, Frame) are silently
+    /// discarded. If you need to observe those frames, consume the stream
+    /// directly with [`StreamExt::next`](futures_util::StreamExt::next).
+    ///
     /// Note that because `next_text` doesn't take ownership over the stream,
     /// the [`Stream`] type must be [`Unpin`]. If you want to use `next_text`
     /// with a [`!Unpin`](Unpin) stream, you'll first have to pin the stream.
@@ -76,6 +84,12 @@ pub trait WebSocketStreamExt {
     where
         Self: Unpin;
 
+    /// Creates a future that resolves to the next text item in the stream,
+    /// deserialized from JSON.
+    ///
+    /// Non-text frames (Binary, Ping, Pong, Close, Frame) are silently
+    /// discarded. If you need to observe those frames, consume the stream
+    /// directly with [`StreamExt::next`](futures_util::StreamExt::next).
     #[cfg(feature = "serde")]
     fn next_json<T>(&mut self) -> next::Json<'_, Self, T>
     where

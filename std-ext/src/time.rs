@@ -1,5 +1,20 @@
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
+/// Monotonic clock.
+pub trait Clock {
+    fn now(&self) -> Instant;
+}
+
+pub struct MonotonicClock;
+
+impl Clock for MonotonicClock {
+    #[inline]
+    fn now(&self) -> Instant {
+        Instant::now()
+    }
+}
+
+/// Wall clock (real-time).
 pub trait Time {
     fn timestamp(&self) -> Duration;
 }
@@ -23,7 +38,10 @@ pub fn timestamp() -> Duration {
 
 #[cfg(test)]
 pub mod tests {
-    use std::{cell::RefCell, rc::Rc};
+    use std::{
+        cell::{Cell, RefCell},
+        rc::Rc,
+    };
 
     use super::*;
 
@@ -52,6 +70,14 @@ pub mod tests {
     {
         fn timestamp(&self) -> Duration {
             self.as_ref().timestamp()
+        }
+    }
+
+    pub struct MockClock(pub Rc<Cell<Instant>>);
+
+    impl Clock for MockClock {
+        fn now(&self) -> Instant {
+            self.0.get()
         }
     }
 }

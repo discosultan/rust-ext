@@ -1,10 +1,10 @@
-use std::{marker::PhantomData, pin::Pin};
-
-use futures_util::{
-    Sink,
-    future::Future,
-    task::{Context, Poll},
+use std::{
+    marker::PhantomData,
+    pin::Pin,
+    task::{Context, Poll, ready},
 };
+
+use futures_util::{Sink, future::Future};
 use serde::Serialize;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -37,17 +37,17 @@ impl<Si: Sink<Message> + Unpin + ?Sized, Item: Serialize> Future for SendJson<'_
 
         let mut sink = Pin::new(&mut this.sink);
         if this.item.is_some() {
-            if sink.as_mut().poll_ready(cx).is_pending() {
-                return Poll::Pending;
-            };
+            if let Err(err) = ready!(sink.as_mut().poll_ready(cx)) {
+                return Poll::Ready(Ok(Err(err)));
+            }
             let item = this.item.take().expect("polled after completion");
             let item = serde_json::to_string(&item)?;
             if let Err(err) = sink.as_mut().start_send(Message::Text(item.into())) {
                 return Poll::Ready(Ok(Err(err)));
             };
         }
-        if sink.poll_flush(cx).is_pending() {
-            return Poll::Pending;
+        if let Err(err) = ready!(sink.poll_flush(cx)) {
+            return Poll::Ready(Ok(Err(err)));
         }
 
         Poll::Ready(Ok(Ok(())))
