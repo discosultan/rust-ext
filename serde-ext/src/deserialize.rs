@@ -132,7 +132,7 @@ where
 {
     struct OptStringVisitor<T>(std::marker::PhantomData<T>);
 
-    impl<T> Visitor<'_> for OptStringVisitor<T>
+    impl<'de, T> Visitor<'de> for OptStringVisitor<T>
     where
         T: FromStr,
         T::Err: fmt::Display,
@@ -143,11 +143,11 @@ where
             formatter.write_str("A null or a string that can be parsed into the requested type.")
         }
 
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
         where
-            E: de::Error,
+            D: Deserializer<'de>,
         {
-            T::from_str(value).map(Some).map_err(E::custom)
+            from_str(deserializer).map(Some)
         }
 
         fn visit_none<E>(self) -> Result<Self::Value, E>
@@ -156,9 +156,16 @@ where
         {
             Ok(None)
         }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
     }
 
-    deserializer.deserialize_any(OptStringVisitor(std::marker::PhantomData))
+    deserializer.deserialize_option(OptStringVisitor(std::marker::PhantomData))
 }
 
 /// For example, deserializes the string "1hour 12min 5s" into a duration.
@@ -267,6 +274,32 @@ mod tests {
         // 2020-06-30 03:24:41.683297666
         let output: NanosDuration = serde_json::from_str("1593487481683297666").unwrap();
         assert_eq!(output.0, Duration::new(1_593_487_481, 683_297_666));
+    }
+
+    #[test_case("{\"value\": \"1\"}" => Some(1))]
+    #[test_case("{\"value\": null}" => None)]
+    fn test_deserialize_from_str_opt(input: &str) -> Option<u32> {
+        #[derive(Deserialize)]
+        struct Number {
+            #[serde(deserialize_with = "from_str_opt")]
+            value: Option<u32>,
+        }
+
+        let output: Number = serde_json::from_str(input).unwrap();
+        output.value
+    }
+
+    #[test]
+    fn test_deserialize_from_str_opt_invalid() {
+        #[derive(Deserialize)]
+        struct Number {
+            #[serde(deserialize_with = "from_str_opt")]
+            #[expect(dead_code)]
+            value: Option<u32>,
+        }
+
+        let result: Result<Number, _> = serde_json::from_str("{\"value\": \"a\"}");
+        assert!(result.is_err());
     }
 
     #[test]
