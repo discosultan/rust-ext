@@ -5,7 +5,7 @@ use std::{
 };
 
 use futures_util::{FutureExt, Sink, SinkExt, Stream, StreamExt, future::BoxFuture};
-use tokio::time::{self, Interval, Sleep};
+use tokio::time::{self, Interval, MissedTickBehavior, Sleep};
 use tokio_tungstenite::{
     WebSocketStream, connect_async_with_config,
     tungstenite::{
@@ -39,6 +39,8 @@ impl<S, C> Refreshing<S, C> {
         let mut interval = time::interval(interval);
         // We reset because otherwise the interval ticks immediately.
         interval.reset();
+        // Avoid firing a burst of reconnects to catch up after a stall.
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
         Self {
             inner,
