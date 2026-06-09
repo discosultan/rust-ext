@@ -21,7 +21,9 @@ pub fn init_console() {
 /// program. Dropping the guard flushes and stops the background writer
 /// thread; logs emitted afterwards are discarded.
 #[cfg(tokio_unstable)]
-pub fn init_rolling_file(directory: impl AsRef<Path>) -> Result<WorkerGuard, SetGlobalDefaultError> {
+pub fn init_rolling_file(
+    directory: impl AsRef<Path>,
+) -> Result<WorkerGuard, SetGlobalDefaultError> {
     use tracing_subscriber::layer::{Layer, SubscriberExt};
 
     // Write to the file from a dedicated thread so that emitting a log event
@@ -59,7 +61,9 @@ pub fn init_rolling_file(directory: impl AsRef<Path>) -> Result<WorkerGuard, Set
 /// program. Dropping the guard flushes and stops the background writer
 /// thread; logs emitted afterwards are discarded.
 #[cfg(not(tokio_unstable))]
-pub fn init_rolling_file(directory: impl AsRef<Path>) -> Result<WorkerGuard, SetGlobalDefaultError> {
+pub fn init_rolling_file(
+    directory: impl AsRef<Path>,
+) -> Result<WorkerGuard, SetGlobalDefaultError> {
     // Write to the file from a dedicated thread so that emitting a log event
     // never blocks the calling (e.g. tokio worker) thread on file I/O.
     let (writer, guard) =
