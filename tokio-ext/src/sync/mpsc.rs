@@ -1,4 +1,4 @@
-use std::panic::Location;
+use std::{panic::Location, sync::atomic::AtomicU64};
 
 use tokio::sync::mpsc::{
     PermitIterator, Sender,
@@ -6,6 +6,12 @@ use tokio::sync::mpsc::{
 };
 use tracing::warn;
 
+use super::log_throttle::should_log;
+
+/// Extension methods that log on high channel usage. To keep the logging off
+/// the hot path, each warning is emitted at most once per second
+/// (process-wide per warning site, since the underlying [`Sender`] holds no
+/// per-channel state for it).
 pub trait SenderExt<'a, T: 'a> {
     fn send_log_backpressure(&self, value: T) -> impl Future<Output = Result<(), SendError<T>>>;
 
@@ -26,9 +32,12 @@ impl<'a, T: 'a> SenderExt<'a, T> for Sender<T> {
 
     #[track_caller]
     fn try_send_discard_full_log_backpressure(&self, value: T) -> Result<(), SendError<T>> {
+        static NEXT_USAGE_LOG_MS: AtomicU64 = AtomicU64::new(0);
+        static NEXT_DISCARD_LOG_MS: AtomicU64 = AtomicU64::new(0);
+
         let capacity = self.max_capacity();
         let len = capacity - self.capacity();
-        if len > capacity / 2 {
+        if len > capacity / 2 && should_log(&NEXT_USAGE_LOG_MS) {
             warn!(
                 len = len,
                 capacity = capacity,
@@ -38,7 +47,9 @@ impl<'a, T: 'a> SenderExt<'a, T> for Sender<T> {
         match self.try_send(value) {
             Ok(()) => Ok(()),
             Err(TrySendError::Full(_)) => {
-                warn!("Discarded value in mpsc try send.");
+                if should_log(&NEXT_DISCARD_LOG_MS) {
+                    warn!("Discarded value in mpsc try send.");
+                }
                 Ok(())
             }
             Err(TrySendError::Closed(value)) => Err(SendError(value)),
@@ -60,9 +71,11 @@ async fn send_log_backpressure_impl<T>(
     value: T,
     caller: &'static Location<'static>,
 ) -> Result<(), SendError<T>> {
+    static NEXT_LOG_MS: AtomicU64 = AtomicU64::new(0);
+
     let capacity = sender.max_capacity();
     let len = capacity - sender.capacity();
-    if len > capacity / 2 {
+    if len > capacity / 2 && should_log(&NEXT_LOG_MS) {
         warn!(
             len = len,
             capacity = capacity,
@@ -79,9 +92,11 @@ async fn reserve_many_log_backpressure_impl<'a, T: 'a>(
     size: usize,
     caller: &'static Location<'static>,
 ) -> Result<PermitIterator<'a, T>, SendError<()>> {
+    static NEXT_LOG_MS: AtomicU64 = AtomicU64::new(0);
+
     let capacity = sender.max_capacity();
     let len = capacity - sender.capacity();
-    if len > capacity / 2 {
+    if len > capacity / 2 && should_log(&NEXT_LOG_MS) {
         warn!(
             len = len,
             capacity = capacity,
