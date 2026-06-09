@@ -18,33 +18,37 @@ pub trait DecimalExt {
 
 impl DecimalExt for Decimal {
     fn to_unscaled_array_vec(&self) -> ArrayVec<u8, CAP> {
-        // Uses a similar implementation as the Decimal Display impl.
         let unpacked = self.unpack();
-        let mut working: [u32; 3] = [unpacked.lo, unpacked.mid, unpacked.hi];
+        let mut value = u128::from(unpacked.hi) << 64
+            | u128::from(unpacked.mid) << 32
+            | u128::from(unpacked.lo);
 
-        if working == [0, 0, 0] {
-            return ArrayVec::from_iter([b'0']);
+        // Digits are produced least-significant first, written back-to-front.
+        let mut buf = [0u8; CAP];
+        let mut pos = CAP;
+
+        // Reduce the value until it fits in a u64 (almost always it already
+        // does), where divisions are much cheaper than on the full 96-bit
+        // mantissa.
+        while value > u128::from(u64::MAX) {
+            pos -= 1;
+            buf[pos] = b'0' + (value % 10) as u8;
+            value /= 10;
+        }
+        let mut value = value as u64;
+        loop {
+            pos -= 1;
+            buf[pos] = b'0' + (value % 10) as u8;
+            value /= 10;
+            if value == 0 {
+                break;
+            }
         }
 
         let mut result = ArrayVec::new();
-        let mut temp_chars = [0u8; CAP];
-        let mut char_count = 0;
-
-        while working != [0, 0, 0] {
-            let mut remainder = 0u64;
-            for part in working.iter_mut().rev() {
-                remainder = remainder * (1u64 << 32) + u64::from(*part);
-                *part = (remainder / 10) as u32;
-                remainder %= 10;
-            }
-            temp_chars[char_count] = b'0' + remainder as u8;
-            char_count += 1;
-        }
-
-        for i in 0..char_count {
-            result.push(temp_chars[char_count - 1 - i]);
-        }
-
+        result
+            .try_extend_from_slice(&buf[pos..])
+            .expect("a 96-bit mantissa has at most 29 digits");
         result
     }
 }
@@ -76,6 +80,8 @@ mod tests {
     #[test_case(dec!(45285.20), b"4528520")]
     #[test_case(dec!(101.00100000), b"10100100000")]
     #[test_case(dec!(0.001), b"1")]
+    #[test_case(dec!(0), b"0")]
+    #[test_case(Decimal::MAX, b"79228162514264337593543950335")]
     fn to_unscaled_array_vec(input: Decimal, expected_output: &[u8]) {
         assert_eq!(input.to_unscaled_array_vec().as_slice(), expected_output);
     }
